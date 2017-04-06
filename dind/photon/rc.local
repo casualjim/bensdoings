@@ -1,0 +1,18 @@
+#!/bin/sh
+
+cleanup() {
+  [ -f /var/run/openvswitch/ovs-vswitchd.pid ] && kill $(cat /var/run/openvswitch/ovs-vswitchd.pid)
+  [ -f /var/run/openvswitch/ovsdb-server.pid ] && kill $(cat /var/run/openvswitch/ovsdb-server.pid)
+  modprobe -r openvswitch
+}
+
+mkdir -p /etc/openvswitch
+mkdir -p /var/run/openvswitch
+modprobe openvswitch
+[ -f /etc/openvswitch/conf.db ] || ovsdb-tool create /etc/openvswitch/conf.db /usr/share/openvswitch/vswitch.ovsschema
+
+[[ -n $(pidof ovsdb-server) ]] || ovsdb-server --remote=punix:/var/run/openvswitch/db.sock --remote=db:Open_vSwitch,Open_vSwitch,manager_options --pidfile --detach
+ovs-vsctl --no-wait init
+[[ -n $(pidof ovs-vswitchd) ]] || ovs-vswitchd --pidfile --detach
+
+/usr/bin/dockerd -H tcp://0.0.0.0:2376 $DOCKER_OPTS
