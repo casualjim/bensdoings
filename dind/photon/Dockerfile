@@ -5,13 +5,11 @@
 
 FROM vmware/photon
 
-
 RUN tdnf install --refresh -y procps-ng iptables net-tools openvswitch tar gzip openssh sed
 RUN curl -L'#' https://get.docker.com/builds/Linux/x86_64/docker-17.03.1-ce.tgz | tar --strip-components=1 -C /usr/bin -xzf -
 RUN sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 
-EXPOSE 2375
 
 CMD ["/etc/rc.local"]
 
