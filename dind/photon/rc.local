@@ -6,6 +6,7 @@ cleanup() {
   modprobe -r openvswitch
 }
 
+echo "==> start openvswitch"
 mkdir -p /etc/openvswitch
 mkdir -p /var/run/openvswitch
 modprobe openvswitch
@@ -15,4 +16,8 @@ modprobe openvswitch
 ovs-vsctl --no-wait init
 [[ -n $(pidof ovs-vswitchd) ]] || ovs-vswitchd --pidfile --detach
 
-/usr/bin/dockerd -H tcp://0.0.0.0:2376 $DOCKER_OPTS
+echo "==> start docker"
+dockerd -H tcp://0.0.0.0:2375 $DOCKER_OPTS
+
+echo "==> start sshd"
+sshd
