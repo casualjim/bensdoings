@@ -6,6 +6,8 @@ cleanup() {
   modprobe -r openvswitch
 }
 
+trap cleanup EXIT
+
 echo "==> start openvswitch"
 mkdir -p /etc/openvswitch
 mkdir -p /var/run/openvswitch
