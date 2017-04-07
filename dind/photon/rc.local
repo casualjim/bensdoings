@@ -16,8 +16,10 @@ modprobe openvswitch
 ovs-vsctl --no-wait init
 [[ -n $(pidof ovs-vswitchd) ]] || ovs-vswitchd --pidfile --detach
 
+if [ -z $(pidof sshd) ]; then 
+  ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -N ''
+  /usr/sbin/sshd
+fi
+
 echo "==> start docker"
 dockerd -H tcp://0.0.0.0:2375 $DOCKER_OPTS
-
-echo "==> start sshd"
-sshd

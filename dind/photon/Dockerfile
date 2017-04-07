@@ -5,12 +5,17 @@
 
 FROM vmware/photon
 
-ADD rc.local /etc/rc.local
 
-RUN tdnf install -y procps-ng iptables net-tools openvswitch tar gzip
-RUN chmod +x /etc/rc.local 
+RUN tdnf install --refresh -y procps-ng iptables net-tools openvswitch tar gzip openssh sed
 RUN curl -L'#' https://get.docker.com/builds/Linux/x86_64/docker-17.03.1-ce.tgz | tar --strip-components=1 -C /usr/bin -xzf -
+RUN sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+
 
 EXPOSE 2375
 
 CMD ["/etc/rc.local"]
+
+RUN echo 'root:Admin!23' | chpasswd
+# added last to promote reuse while editing rc.local
+ADD rc.local /etc/rc.local
+RUN chmod +x /etc/rc.local
