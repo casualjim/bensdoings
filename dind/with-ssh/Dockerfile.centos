@@ -19,15 +19,33 @@ RUN yum install -y \
     net-tools \
     openssl \
     openssh-clients \
-    && mkdir /var/run/sshd && chmod 700 /var/run/sshd \
+    && yum clean all
+
+RUN mkdir /var/run/sshd && chmod 700 /var/run/sshd \
     && chown root:root /usr/bin/adduserkey \
 # Comment out next 3 lines if you do not want to bake in a particular non-root user/pwd combo
     && useradd -s /bin/bash -m -p $(openssl passwd -1 vmware) vmware \
     && su vmware && mkdir ~/.ssh && chmod 700 ~/.ssh \
-    && echo "vmware   ALL=(ALL:ALL) ALL" >> /etc/sudoers \
+    && echo "vmware   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vmware \
+    && usermod -aG docker vmware \    
 # Comment out if you don't want to grant root ssh access
     && sed -i -- 's/#PermitRootLogin/PermitRootLogin/g' /etc/ssh/sshd_config
+    
+
+# Adds openvswitch and installs sysvinit-tools for pidof command
+RUN yum install -y \
+    iproute \
+    python-six \
+    openssl \
+    sysvinit-tools \
+    rsyslog \
+    && rpm -i http://sc-dbc1213.eng.vmware.com/icarrero/ovs-centos/openvswitch-2.6.1-1.el7.centos.x86_64.rpm \
+    && rpm -i http://sc-dbc1213.eng.vmware.com/icarrero/ovs-centos/python-openvswitch-2.6.1-1.el7.centos.noarch.rpm \
+    && yum clean all
 
 EXPOSE 22
+CMD /etc/rc.local
 
-CMD /usr/bin/ssh-keygen -A && /usr/sbin/sshd && /usr/bin/dockerd -s overlay2 $DOCKER_OPTS
+# added last to promote reuse while editing rc.local
+ADD rc.local /etc/rc.local
+RUN chmod +x /etc/rc.local

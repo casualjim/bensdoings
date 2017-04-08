@@ -24,8 +24,9 @@ ovs-vsctl --no-wait init
 [[ -n "$(pidof ovs-vswitchd)" ]] || ovs-vswitchd --pidfile --detach
 
 if [ -z "$(pidof sshd)" ]; then 
+  echo "==> starting sshd"
   ssh-keygen -A
-  /usr/sbin/sshd
+  /usr/sbin/sshd -e
 fi
 
 if ! grep -q '^10.21.136.241' /etc/hosts; then 

@@ -1,6 +1,9 @@
 #!/bin/bash
 
+set -e 
+
 cleanup() {
+  set +e
   # stop openvswitch
   [ -f /var/run/openvswitch/ovs-vswitchd.pid ] && kill "$(cat /var/run/openvswitch/ovs-vswitchd.pid)"
   [ -f /var/run/openvswitch/ovsdb-server.pid ] && kill "$(cat /var/run/openvswitch/ovsdb-server.pid)"
@@ -8,10 +11,30 @@ cleanup() {
 
   # stop sshd
   [ -n "$(pidof sshd)" ] && kill "$(pidof sshd)"  
+
+  [ -f /var/run/rsyslogd.pid ] && kill $(cat /var/run/rsyslogd.pid)
+
 }
 trap cleanup EXIT
 
+
+echo "==> configuring network"
+if ! grep -q '^10.21.136.241' /etc/hosts; then 
+  echo "==> adding hosts entry"
+  echo '10.21.136.241 viddc-nsx.eng.vmware.local' >> /etc/hosts
+fi
+
 [ -e /sys/class/net/eth1 ] && ip link set eth1 up
+
+if [ -z "$(pidof sshd)" ]; then 
+  echo "==> starting sshd"
+  ssh-keygen -A
+  /usr/sbin/sshd -E /var/log/sshd.log
+fi
+
+
+echo "==> starting rsyslogd"
+rsyslogd
 
 echo "==> start openvswitch"
 mkdir -p /etc/openvswitch
@@ -23,15 +46,5 @@ modprobe openvswitch
 ovs-vsctl --no-wait init
 [[ -n "$(pidof ovs-vswitchd)" ]] || ovs-vswitchd --pidfile --detach
 
-if [ -z "$(pidof sshd)" ]; then 
-  ssh-keygen -A
-  /usr/sbin/sshd
-fi
-
-if ! grep -q '^10.21.136.241' /etc/hosts; then 
-  echo "==> adding hosts entry"
-  echo '10.21.136.241 viddc-nsx.eng.vmware.local' >> /etc/hosts
-fi
-
 echo "==> start docker"
-dockerd -H unix:///var/run/docker.sock --insecure-registry viddc-nsx.eng.vmware.local -s overlay2 $DOCKER_OPTS
+dockerd -H unix:///var/run/docker.sock --insecure-registry viddc-nsx.eng.vmware.local -s overlay2 $DOCKER_OPTS &> /var/log/docker.log

@@ -5,11 +5,21 @@
 
 # See README for usage
 
-FROM centos:7.3.1611
+FROM centos:latest
 
-RUN yum install -y yum-utils \
+RUN yum -y update \
+    && yum install -y yum-utils iproute python-six openssl \
     && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
     && yum makecache fast \
-    && yum install -y docker-ce
+    && yum install -y docker-ce \
+    && rpm -i http://sc-dbc1213.eng.vmware.com/icarrero/ovs-centos/openvswitch-2.6.1-1.el7.centos.x86_64.rpm \
+    && rpm -i http://sc-dbc1213.eng.vmware.com/icarrero/ovs-centos/python-openvswitch-2.6.1-1.el7.centos.noarch.rpm \
+    && yum clean all
 
-CMD /usr/bin/dockerd -s overlay2 $DOCKER_OPTS
+EXPOSE 22
+
+CMD /etc/rc.local
+
+# added last to promote reuse while editing rc.local
+ADD rc.local /etc/rc.local
+RUN chmod +x /etc/rc.local
