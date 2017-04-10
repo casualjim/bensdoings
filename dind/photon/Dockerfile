@@ -5,9 +5,17 @@
 
 FROM vmware/photon
 
-RUN tdnf install --refresh -y procps-ng iptables net-tools openvswitch tar gzip openssh sed iproute2
-RUN curl -L'#' https://get.docker.com/builds/Linux/x86_64/docker-17.03.1-ce.tgz | tar --strip-components=1 -C /usr/bin -xzf -
-RUN sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+COPY adduserkey /usr/bin
+RUN tdnf install --refresh -y procps-ng iptables net-tools openvswitch tar gzip openssh sed iproute2 && tdnf clean
+RUN curl -L'#' https://get.docker.com/builds/Linux/x86_64/docker-17.04.0-ce.tgz | tar --strip-components=1 -C /usr/bin -xzf -
+RUN mkdir /var/run/sshd && chmod 700 /var/run/sshd \
+    && chown root:root /usr/bin/adduserkey \
+# Comment out next 3 lines if you do not want to bake in a particular non-root user/pwd combo
+    && useradd -s /bin/bash -m -p $(openssl passwd -1 vmware) vmware \
+    && su vmware && mkdir ~/.ssh && chmod 700 ~/.ssh \
+    && echo "vmware   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vmware \
+    && usermod -aG docker vmware \    
+    && sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 
 CMD ["/etc/rc.local"]

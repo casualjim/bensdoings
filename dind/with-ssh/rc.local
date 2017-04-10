@@ -17,6 +17,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
+echo "==> starting udevd again"
+/lib/systemd/systemd-udevd --daemon
 
 echo "==> configuring network"
 if ! grep -q '^10.21.136.241' /etc/hosts; then 
@@ -26,15 +28,14 @@ fi
 
 [ -e /sys/class/net/eth1 ] && ip link set eth1 up
 
+echo "==> starting rsyslogd"
+rsyslogd
+
 if [ -z "$(pidof sshd)" ]; then 
   echo "==> starting sshd"
   ssh-keygen -A
   /usr/sbin/sshd -E /var/log/sshd.log
 fi
-
-
-echo "==> starting rsyslogd"
-rsyslogd
 
 echo "==> start openvswitch"
 mkdir -p /etc/openvswitch
