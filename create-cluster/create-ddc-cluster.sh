@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 set -e -o pipefail
 
@@ -84,7 +84,7 @@ create_node()
      echo -n "."
    done
    echo "."
-   
+
    echo "${garrow}Installing vSphere volume driver"
    ssh $ip "docker plugin install --grant-all-permissions --alias vsphere vmware/docker-volume-vsphere:0.13 2>&1 > /dev/null"
 }
@@ -159,16 +159,18 @@ echo "."
 
 for ((i=2; i<=$MANAGER_COUNT; i++))
 do
-   create_node "m"$i"-vol" "manager"$i"" "$NODE_IMAGE" "$ssh_key"
+   create_node "m"$i"-vol" "manager"$i"" "$NODE_IMAGE" "$ssh_key" &
 done
+wait
 
 for ((i=1; i<=$WORKER_COUNT; i++))
 do
-   create_node "w"$i"-vol" "worker"$i"" "$NODE_IMAGE" "$ssh_key"
+   create_node "w"$i"-vol" "worker"$i"" "$NODE_IMAGE" "$ssh_key" &
 done
+wait
 
 echo "${barrow}Installing UCP $UCP_VERSION to $MANAGER1_IP"
-echo "${garrow}Pull docker/ucp:$UCP_VERSION" 
+echo "${garrow}Pull docker/ucp:$UCP_VERSION"
 ssh $MANAGER1_IP "docker pull docker/ucp:$UCP_VERSION" &> /dev/null
 echo "${garrow}Configure UCP"
 ssh $MANAGER1_IP "docker run --rm --name ucp -v /var/run/docker.sock:/var/run/docker.sock docker/ucp:$UCP_VERSION install --host-address $MANAGER1_IP --admin-username $SWARM_ADMIN --admin-password $SWARM_ADMIN_PWD"
@@ -180,11 +182,12 @@ export WTOKEN=$(ssh $MANAGER1_IP docker swarm join-token -q worker)
 
 for ((i=2; i<=$MANAGER_COUNT; i++))
 do
-   join_swarm_node "manager"$i"" $MTOKEN $MANAGER1_IP
+   join_swarm_node "manager"$i"" $MTOKEN $MANAGER1_IP &
 done
 
 for ((i=1; i<=$WORKER_COUNT; i++))
 do
-   join_swarm_node "worker"$i"" $WTOKEN $MANAGER1_IP
+   join_swarm_node "worker"$i"" $WTOKEN $MANAGER1_IP &
 done
+wait
 
